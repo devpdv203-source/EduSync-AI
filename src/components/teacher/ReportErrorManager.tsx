@@ -212,13 +212,15 @@ export const ReportErrorManager: React.FC = () => {
 
     const sub = subjects.find(s => s.id === correctSubjectId);
     updateMidExamMark({
+      id: `mid_${activeStudent.id}_${correctSubjectId}`,
       studentId: activeStudent.id,
       subjectId: correctSubjectId,
       subjectName: sub?.name || "Subject",
       score: Number(correctScore),
       maxScore: Number(correctMaxScore),
       examDate: new Date().toISOString().split("T")[0],
-      academicPeriod: "Semester V Mid-Exam Correction"
+      academicPeriod: "Semester V Mid-Exam Correction",
+      updatedAt: new Date().toISOString().split("T")[0]
     });
 
     const newMeta = regenerateStudentReport(activeStudent.id, `Mid Exam score corrected for ${sub?.name || "subject"}`);

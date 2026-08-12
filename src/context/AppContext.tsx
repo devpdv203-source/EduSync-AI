@@ -142,7 +142,7 @@ interface AppContextType {
       recordedBy: string;
     }>;
   };
-  getStudentOverallAttendanceSummary: (studentId: string) => {
+  getStudentOverallAttendanceSummary: (studentId: string, semesterId?: string) => {
     studentId: string;
     studentName: string;
     totalConducted: number;

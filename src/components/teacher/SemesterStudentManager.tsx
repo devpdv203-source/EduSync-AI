@@ -20,7 +20,7 @@ import { StudentPerformanceReport } from "../shared/StudentPerformanceReport";
 export const SemesterStudentManager: React.FC = () => {
   const {
     filteredStudents: contextFilteredStudents,
-    filteredDivisions,
+    divisions: filteredDivisions,
     selectedSemesterId,
     selectedSemester,
     addStudent,
@@ -33,10 +33,13 @@ export const SemesterStudentManager: React.FC = () => {
   const [selectedReportStudentId, setSelectedReportStudentId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Clear selected report student whenever active semester changes
+  // Clear selected report student & update divisionId whenever active semester changes
   useEffect(() => {
     setSelectedReportStudentId(null);
-  }, [selectedSemesterId]);
+    if (filteredDivisions.length > 0 && (!divisionId || !filteredDivisions.some(d => d.id === divisionId))) {
+      setDivisionId(filteredDivisions[0]?.id || "div_a");
+    }
+  }, [selectedSemesterId, filteredDivisions]);
 
   // Single Student Form State
   const [name, setName] = useState("");

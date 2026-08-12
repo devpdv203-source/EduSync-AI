@@ -4,6 +4,7 @@ import { Header } from "./components/layout/Header";
 import { Sidebar } from "./components/layout/Sidebar";
 import { NotificationDrawer } from "./components/layout/NotificationDrawer";
 import { BiometricMfaModal } from "./components/common/BiometricMfaModal";
+import { ErrorBoundary } from "./components/common/ErrorBoundary";
 
 // Teacher Views
 import { TeacherDashboard } from "./components/teacher/TeacherDashboard";
@@ -177,7 +178,9 @@ const MainAppContent: React.FC = () => {
         />
 
         <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
-          {renderActiveTabContent()}
+          <ErrorBoundary key={activeTab}>
+            {renderActiveTabContent()}
+          </ErrorBoundary>
         </main>
       </div>
 

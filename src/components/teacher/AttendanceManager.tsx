@@ -24,7 +24,7 @@ export const AttendanceManager: React.FC = () => {
     currentUser,
     filteredStudents: students,
     filteredSubjects: subjects,
-    filteredDivisions: divisions,
+    divisions,
     filteredAttendance: attendance,
     selectedSemesterId,
     selectedSemester,
@@ -71,11 +71,11 @@ export const AttendanceManager: React.FC = () => {
 
     if (existingRecord) {
       divisionStudents.forEach(s => {
-        if (existingRecord.presentStudentIds.includes(s.id)) {
+        if ((existingRecord.presentStudentIds || []).includes(s.id)) {
           newMap[s.id] = "present";
-        } else if (existingRecord.lateStudentIds?.includes(s.id)) {
+        } else if ((existingRecord.lateStudentIds || []).includes(s.id)) {
           newMap[s.id] = "late";
-        } else if (existingRecord.absentStudentIds.includes(s.id)) {
+        } else if ((existingRecord.absentStudentIds || []).includes(s.id)) {
           newMap[s.id] = "absent";
         } else {
           newMap[s.id] = "present";
@@ -512,8 +512,11 @@ export const AttendanceManager: React.FC = () => {
             {attendance
               .filter(a => selectedSubject === "all" || a.subjectId === selectedSubject)
               .map(record => {
-                const totalStudents = record.presentStudentIds.length + record.absentStudentIds.length + (record.lateStudentIds?.length || 0);
-                const pct = totalStudents > 0 ? Math.round(((record.presentStudentIds.length + (record.lateStudentIds?.length || 0) * 0.5) / totalStudents) * 100) : 100;
+                const presentCount = (record.presentStudentIds || []).length;
+                const absentCount = (record.absentStudentIds || []).length;
+                const lateCount = (record.lateStudentIds || []).length;
+                const totalStudents = presentCount + absentCount + lateCount;
+                const pct = totalStudents > 0 ? Math.round(((presentCount + lateCount * 0.5) / totalStudents) * 100) : 100;
 
                 return (
                   <div
@@ -557,7 +560,7 @@ export const AttendanceManager: React.FC = () => {
                           {pct}% Turnout
                         </div>
                         <div className="text-[11px] text-slate-400">
-                          {record.presentStudentIds.length} Present • {record.absentStudentIds.length} Absent
+                          {presentCount} Present • {absentCount} Absent
                         </div>
                       </div>
 

@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 export const TimetableManager: React.FC = () => {
-  const { timetable, filteredDivisions: divisions, filteredSubjects: subjects, selectedSemesterId } = useApp();
+  const { timetable, divisions, filteredSubjects: subjects, selectedSemesterId } = useApp();
 
   const [selectedDivision, setSelectedDivision] = useState(divisions[0]?.id || "div_a");
 

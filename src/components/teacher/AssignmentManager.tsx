@@ -17,7 +17,7 @@ export const AssignmentManager: React.FC = () => {
     filteredAssignments: assignments,
     submissions,
     filteredSubjects: subjects,
-    filteredDivisions: divisions,
+    divisions,
     selectedSemesterId,
     addAssignment,
     evaluateSubmission,

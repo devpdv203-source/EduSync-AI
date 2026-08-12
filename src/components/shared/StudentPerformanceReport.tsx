@@ -86,6 +86,7 @@ export const StudentPerformanceReport: React.FC<StudentPerformanceReportProps> =
         divisionName: currentUser.divisionName || "Div A - CS",
         overallAttendance: 85,
         gpa: 3.5,
+        riskCategory: "Low" as const,
         status: "Active" as const
       };
     }
@@ -103,6 +104,16 @@ export const StudentPerformanceReport: React.FC<StudentPerformanceReportProps> =
     return students[0]?.id || "stu_1";
   });
 
+  React.useEffect(() => {
+    if (role === "student" && loggedInStudent) {
+      setSelectedStudentId(loggedInStudent.id);
+    } else if (initialStudentId) {
+      setSelectedStudentId(initialStudentId);
+    } else if (students.length > 0 && (!selectedStudentId || !students.some(s => s.id === selectedStudentId))) {
+      setSelectedStudentId(students[0]?.id || "stu_1");
+    }
+  }, [initialStudentId, selectedSemesterId, students, role, loggedInStudent?.id]);
+
   const [searchFilter, setSearchFilter] = useState("");
   const [reportGenTimestamp, setReportGenTimestamp] = useState<string>(() =>
     new Date().toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })
@@ -116,6 +127,7 @@ export const StudentPerformanceReport: React.FC<StudentPerformanceReportProps> =
     }
     return students.find(s => s.id === selectedStudentId) || students[0] || {
       id: currentUser?.uid || "stu_1",
+      uid: currentUser?.uid || "stu_1",
       name: currentUser?.name || "Alex Morgan",
       email: currentUser?.email || "alex.morgan@edusync.edu",
       enrollmentNo: "2026-CS-001",

@@ -27,8 +27,12 @@ export const TeacherAIDashboard: React.FC = () => {
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(students[0]?.id || null);
 
   useEffect(() => {
-    setSelectedStudentId(students[0]?.id || null);
-  }, [selectedSemesterId]);
+    if (students.length > 0 && (!selectedStudentId || !students.some(s => s.id === selectedStudentId))) {
+      setSelectedStudentId(students[0]?.id || null);
+    } else if (students.length === 0) {
+      setSelectedStudentId(null);
+    }
+  }, [selectedSemesterId, students]);
   const [analyzingAi, setAnalyzingAi] = useState(false);
   const [teacherAiInsights, setTeacherAiInsights] = useState<string[]>([
     "Conduct a dedicated remedial lab session for Machine Learning (CS-504) regression topics.",
