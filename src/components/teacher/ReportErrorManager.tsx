@@ -55,7 +55,7 @@ export const ReportErrorManager: React.FC = () => {
 
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [selectedIssue, setSelectedIssue] = useState<ReportIssue | null>(null);
+  const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
 
   // Response Form state for selected issue
   const [responseText, setResponseText] = useState<string>("");
@@ -89,8 +89,9 @@ export const ReportErrorManager: React.FC = () => {
 
   // Reset selected issue when active semester context changes
   useEffect(() => {
-    setSelectedIssue(null);
+    setSelectedIssueId(null);
     setPreviewReportStudentId(null);
+    setCorrectionSuccessMsg("");
   }, [selectedSemesterId]);
 
   const studentObj = useMemo(() => {
@@ -124,6 +125,12 @@ export const ReportErrorManager: React.FC = () => {
     });
   }, [reportIssues, statusFilter, searchQuery, role, studentObj, currentUser, teacherSemesterStudents]);
 
+  // Derive selected issue dynamically from filtered issues list
+  const selectedIssue = useMemo(() => {
+    if (!selectedIssueId) return null;
+    return filteredIssues.find(i => i.id === selectedIssueId) || null;
+  }, [filteredIssues, selectedIssueId]);
+
   // Statistics
   const stats = useMemo(() => {
     const myStudentId = studentObj?.id || currentUser.uid;
@@ -146,6 +153,71 @@ export const ReportErrorManager: React.FC = () => {
     return students.find(s => s.id === selectedIssue.studentId || s.uid === selectedIssue.studentId) || null;
   }, [selectedIssue, students]);
 
+  // Synchronize and reset all ticket edit and correction state whenever selectedIssue changes
+  useEffect(() => {
+    if (selectedIssue) {
+      setResponseText(selectedIssue.teacherResponse || selectedIssue.adminResponse || "");
+      setTargetStatus(selectedIssue.status === "Pending" ? "Under Review" : selectedIssue.status);
+      setCorrectionSuccessMsg("");
+      setAttReason("");
+      setConfirmAttModalOpen(false);
+
+      const targetStudent = students.find(s => s.id === selectedIssue.studentId || s.uid === selectedIssue.studentId);
+
+      // Initialize Marks state
+      if (subjects.length > 0 && subjects[0]) {
+        setCorrectSubjectId(subjects[0].id);
+        setAttSubjectId(subjects[0].id);
+        const existingMark = midExamMarks.find(
+          m => m.studentId === selectedIssue.studentId && m.subjectId === subjects[0].id
+        );
+        if (existingMark) {
+          setCorrectScore(existingMark.score);
+          setCorrectMaxScore(existingMark.maxScore);
+        } else {
+          setCorrectScore(25);
+          setCorrectMaxScore(30);
+        }
+      }
+
+      // Initialize Student Info state
+      if (targetStudent) {
+        setEditStudentName(targetStudent.name);
+        setEditEnrollmentNo(targetStudent.enrollmentNo);
+        setEditDivisionId(targetStudent.divisionId);
+        setEditEmail(targetStudent.email || "");
+      } else {
+        setEditStudentName("");
+        setEditEnrollmentNo("");
+        setEditDivisionId("");
+        setEditEmail("");
+      }
+
+      // Initialize Assignment state
+      if (assignments.length > 0 && assignments[0]) {
+        setSelectedAssignmentId(assignments[0].id);
+        const existingSub = submissions.find(
+          sub => sub.assignmentId === assignments[0].id && sub.studentId === selectedIssue.studentId
+        );
+        if (existingSub && existingSub.grade !== undefined) {
+          setCorrectAssignmentScore(existingSub.grade);
+        } else {
+          setCorrectAssignmentScore(85);
+        }
+      }
+    } else {
+      setResponseText("");
+      setTargetStatus("Resolved");
+      setCorrectionSuccessMsg("");
+      setAttReason("");
+      setConfirmAttModalOpen(false);
+      setEditStudentName("");
+      setEditEnrollmentNo("");
+      setEditDivisionId("");
+      setEditEmail("");
+    }
+  }, [selectedIssue?.id, students, subjects, assignments, midExamMarks, submissions]);
+
   // Attendance history for active student & selected subject
   const attendanceHistorySummary = useMemo(() => {
     if (!activeStudent || !attSubjectId) return null;
@@ -154,31 +226,8 @@ export const ReportErrorManager: React.FC = () => {
 
   // Handle selecting an issue ticket
   const handleSelectIssue = (issue: ReportIssue) => {
-    setSelectedIssue(issue);
-    setResponseText(issue.teacherResponse || issue.adminResponse || "");
-    setTargetStatus(issue.status === "Pending" ? "Under Review" : issue.status);
+    setSelectedIssueId(issue.id);
     setCorrectionSuccessMsg("");
-
-    const studentObj = students.find(s => s.id === issue.studentId || s.uid === issue.studentId);
-
-    // Initialize Marks state
-    if (subjects.length > 0 && subjects[0]) {
-      setCorrectSubjectId(subjects[0].id);
-      setAttSubjectId(subjects[0].id);
-    }
-
-    // Initialize Student Info state
-    if (studentObj) {
-      setEditStudentName(studentObj.name);
-      setEditEnrollmentNo(studentObj.enrollmentNo);
-      setEditDivisionId(studentObj.divisionId);
-      setEditEmail(studentObj.email || "");
-    }
-
-    // Initialize Assignment state
-    if (assignments.length > 0 && assignments[0]) {
-      setSelectedAssignmentId(assignments[0].id);
-    }
   };
 
   // Automatically update initial fields when subject changes in attendance panel
@@ -347,7 +396,7 @@ export const ReportErrorManager: React.FC = () => {
 
     setCorrectionSuccessMsg(`Ticket #${selectedIssue.id.slice(-6)} updated to "${targetStatus}". Student notified.`);
     setTimeout(() => {
-      setSelectedIssue(null);
+      setSelectedIssueId(null);
       setCorrectionSuccessMsg("");
     }, 2000);
   };
@@ -493,7 +542,7 @@ export const ReportErrorManager: React.FC = () => {
 
         {/* Selected Ticket Review & Source Correction Panel */}
         {selectedIssue && (
-          <div className="lg:col-span-7 space-y-5">
+          <div key={selectedIssue.id} className="lg:col-span-7 space-y-5">
             <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-md space-y-5">
               {/* Ticket Header */}
               <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
@@ -515,7 +564,7 @@ export const ReportErrorManager: React.FC = () => {
                     <span>View Student Report</span>
                   </button>
                   <button
-                    onClick={() => setSelectedIssue(null)}
+                    onClick={() => setSelectedIssueId(null)}
                     className="text-slate-400 hover:text-slate-600 text-xs font-bold"
                   >
                     ✕
@@ -1106,7 +1155,7 @@ export const ReportErrorManager: React.FC = () => {
                     <div className="flex justify-end space-x-2 pt-1">
                       <button
                         type="button"
-                        onClick={() => setSelectedIssue(null)}
+                        onClick={() => setSelectedIssueId(null)}
                         className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-200"
                       >
                         Cancel

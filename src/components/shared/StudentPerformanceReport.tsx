@@ -70,8 +70,16 @@ export const StudentPerformanceReport: React.FC<StudentPerformanceReportProps> =
   const [errorCategory, setErrorCategory] = useState<ReportIssueCategory>("Incorrect Mid Examination Score");
   const [errorDescription, setErrorDescription] = useState("");
   const [submitSuccessMsg, setSubmitSuccessMsg] = useState("");
+  const [submitErrorMsg, setSubmitErrorMsg] = useState("");
 
   const [isSubmittingError, setIsSubmittingError] = useState(false);
+
+  const handleOpenErrorModal = () => {
+    setErrorCategory("Incorrect Mid Examination Score");
+    setErrorDescription("");
+    setSubmitErrorMsg("");
+    setShowErrorModal(true);
+  };
 
   // Determine current user's student match if student role
   const loggedInStudent = useMemo(() => {
@@ -144,8 +152,10 @@ export const StudentPerformanceReport: React.FC<StudentPerformanceReportProps> =
 
   const handleSubmitErrorNotification = (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitErrorMsg("");
+
     if (!errorDescription.trim()) {
-      alert("Please provide a detailed explanation of the error.");
+      setSubmitErrorMsg("Please provide a detailed explanation of the error.");
       return;
     }
 
@@ -161,22 +171,25 @@ export const StudentPerformanceReport: React.FC<StudentPerformanceReportProps> =
         reportId: reportMeta.reportId,
         reportVersion: reportMeta.version,
         category: errorCategory,
-        description: errorDescription
+        description: errorDescription.trim()
       });
 
       if (res.success) {
         setSubmitSuccessMsg(`Report error notification submitted successfully! (Ticket ID: #${res.issueId.slice(-6)}). Assigned to Teacher & Administrator.`);
+        // Reset form state so next opening starts completely fresh
+        setErrorCategory("Incorrect Mid Examination Score");
         setErrorDescription("");
-        setTimeout(() => {
-          setSubmitSuccessMsg("");
-          setShowErrorModal(false);
-          setIsSubmittingError(false);
-        }, 1500);
+        setSubmitErrorMsg("");
+        // Automatically close modal immediately after successful submission
+        setShowErrorModal(false);
+        setIsSubmittingError(false);
       } else {
+        setSubmitErrorMsg(res.message || "Failed to submit error report. Please try again.");
         setIsSubmittingError(false);
       }
     } catch (err) {
       console.error(err);
+      setSubmitErrorMsg("An unexpected error occurred while submitting your ticket.");
       setIsSubmittingError(false);
     }
   };
@@ -562,13 +575,15 @@ export const StudentPerformanceReport: React.FC<StudentPerformanceReportProps> =
             </>
           )}
 
-          <button
-            onClick={() => setShowErrorModal(true)}
-            className="px-3.5 py-2.5 rounded-2xl bg-rose-50 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/90 text-xs font-bold transition-all flex items-center space-x-1.5 border border-rose-200/80 dark:border-rose-900"
-          >
-            <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400" />
-            <span>Report an Error</span>
-          </button>
+          {role === "student" && (
+            <button
+              onClick={handleOpenErrorModal}
+              className="px-3.5 py-2.5 rounded-2xl bg-rose-50 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/90 text-xs font-bold transition-all flex items-center space-x-1.5 border border-rose-200/80 dark:border-rose-900"
+            >
+              <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+              <span>Report an Error</span>
+            </button>
+          )}
 
           <button
             onClick={handlePrintReport}
@@ -589,8 +604,24 @@ export const StudentPerformanceReport: React.FC<StudentPerformanceReportProps> =
         </div>
       </div>
 
-      {/* Report Error Form Modal */}
-      {showErrorModal && (
+      {/* Success Notification Banner for Student Report */}
+      {submitSuccessMsg && (
+        <div className="print:hidden p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 text-xs font-bold flex items-center justify-between shadow-xs">
+          <div className="flex items-center space-x-2">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span>{submitSuccessMsg}</span>
+          </div>
+          <button
+            onClick={() => setSubmitSuccessMsg("")}
+            className="text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-200 text-xs font-bold ml-2 p-1"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Report Error Form Modal - Visible and Available ONLY to Students */}
+      {role === "student" && showErrorModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
           <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
@@ -603,9 +634,9 @@ export const StudentPerformanceReport: React.FC<StudentPerformanceReportProps> =
               <button
                 onClick={() => {
                   setShowErrorModal(false);
-                  setSubmitSuccessMsg("");
+                  setSubmitErrorMsg("");
                 }}
-                className="text-slate-400 hover:text-slate-600 text-xs font-bold"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-bold"
               >
                 ✕
               </button>
@@ -615,86 +646,89 @@ export const StudentPerformanceReport: React.FC<StudentPerformanceReportProps> =
               Submit a formal correction ticket if any information, attendance, or mark in this report appears inaccurate. Faculty &amp; Administrators will review the source data.
             </p>
 
-            {submitSuccessMsg ? (
-              <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-200 text-emerald-800 dark:text-emerald-300 text-xs font-bold flex items-center space-x-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                <span>{submitSuccessMsg}</span>
+            {submitErrorMsg && (
+              <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/80 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs font-medium flex items-center space-x-2">
+                <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+                <span>{submitErrorMsg}</span>
               </div>
-            ) : (
-              <form onSubmit={handleSubmitErrorNotification} className="space-y-4 text-xs">
-                {/* Auto-populated details */}
-                <div className="grid grid-cols-2 gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 text-[11px]">
-                  <div>
-                    <span className="text-slate-400 block font-medium">Student Name:</span>
-                    <span className="font-bold text-slate-800 dark:text-slate-200">{activeStudent?.name || "N/A"}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block font-medium">Enrollment No:</span>
-                    <span className="font-bold text-indigo-600 dark:text-indigo-400">{activeStudent?.enrollmentNo || "N/A"}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block font-medium">Linked Report ID:</span>
-                    <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{reportMeta.reportId}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block font-medium">Report Version:</span>
-                    <span className="font-bold text-emerald-600">Version {reportMeta.version}</span>
-                  </div>
-                </div>
-
-                {/* Category select */}
-                <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Error Category *
-                  </label>
-                  <select
-                    value={errorCategory}
-                    onChange={e => setErrorCategory(e.target.value as ReportIssueCategory)}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/30"
-                  >
-                    <option value="Incorrect Mid Examination Score">Incorrect Mid Examination Score</option>
-                    <option value="Incorrect Attendance">Incorrect Attendance</option>
-                    <option value="Incorrect Assignment/Activity Score">Incorrect Assignment/Activity Score</option>
-                    <option value="Incorrect Student Information">Incorrect Student Information</option>
-                    <option value="Incorrect Performance Calculation">Incorrect Performance Calculation</option>
-                    <option value="Report Generation Error">Report Generation Error</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-
-                {/* Description textarea */}
-                <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Detailed Explanation *
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={errorDescription}
-                    onChange={e => setErrorDescription(e.target.value)}
-                    placeholder='Example: "My Database Management mid-examination score is displayed as 21, but I received 25 marks on my answer script."'
-                    className="w-full p-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/30"
-                  />
-                </div>
-
-                <div className="flex justify-end space-x-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowErrorModal(false)}
-                    className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-200"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmittingError}
-                    className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold flex items-center space-x-1.5 shadow-md shadow-rose-600/20"
-                  >
-                    <Send className="w-4 h-4" />
-                    <span>{isSubmittingError ? "Submitting Ticket..." : "Submit Error Notification"}</span>
-                  </button>
-                </div>
-              </form>
             )}
+
+            <form onSubmit={handleSubmitErrorNotification} className="space-y-4 text-xs">
+              {/* Auto-populated details */}
+              <div className="grid grid-cols-2 gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 text-[11px]">
+                <div>
+                  <span className="text-slate-400 block font-medium">Student Name:</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">{activeStudent?.name || "N/A"}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block font-medium">Enrollment No:</span>
+                  <span className="font-bold text-indigo-600 dark:text-indigo-400">{activeStudent?.enrollmentNo || "N/A"}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block font-medium">Linked Report ID:</span>
+                  <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{reportMeta.reportId}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block font-medium">Report Version:</span>
+                  <span className="font-bold text-emerald-600">Version {reportMeta.version}</span>
+                </div>
+              </div>
+
+              {/* Category select */}
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Error Category *
+                </label>
+                <select
+                  value={errorCategory}
+                  onChange={e => setErrorCategory(e.target.value as ReportIssueCategory)}
+                  className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/30"
+                >
+                  <option value="Incorrect Mid Examination Score">Incorrect Mid Examination Score</option>
+                  <option value="Incorrect Attendance">Incorrect Attendance</option>
+                  <option value="Incorrect Assignment/Activity Score">Incorrect Assignment/Activity Score</option>
+                  <option value="Incorrect Student Information">Incorrect Student Information</option>
+                  <option value="Incorrect Performance Calculation">Incorrect Performance Calculation</option>
+                  <option value="Report Generation Error">Report Generation Error</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              {/* Description textarea */}
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Detailed Explanation *
+                </label>
+                <textarea
+                  rows={4}
+                  value={errorDescription}
+                  onChange={e => setErrorDescription(e.target.value)}
+                  placeholder='Example: "My Database Management mid-examination score is displayed as 21, but I received 25 marks on my answer script."'
+                  className="w-full p-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/30"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowErrorModal(false);
+                    setSubmitErrorMsg("");
+                  }}
+                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingError}
+                  className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold flex items-center space-x-1.5 shadow-md shadow-rose-600/20"
+                >
+                  <Send className="w-4 h-4" />
+                  <span>{isSubmittingError ? "Submitting Ticket..." : "Submit Error Notification"}</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
