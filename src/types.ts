@@ -83,6 +83,10 @@ export interface AttendanceRecord {
   absentStudentIds: string[];
   lateStudentIds?: string[];
   notes?: string;
+  sessionType?: "Lecture" | "Lab" | "Extra Class";
+  targetGroup?: string; // "All Divisions", "A + B", "C + D", "Division A", etc.
+  timetableSlotId?: string;
+  semesterId?: string;
   updatedAt?: string;
   updatedBy?: string;
   auditTrail?: {
@@ -159,6 +163,14 @@ export interface TimetableSlot {
   subjectName: string;
   teacherName: string;
   roomNo: string;
+  semesterId?: string;
+  period?: number;
+  sessionType?: "Lecture" | "Lab";
+  targetGroup?: string; // e.g. "All Divisions (A+B+C+D)", "A + B", "C + D", "Division A"
+  targetDivisionIds?: string[]; // e.g. ["div_a", "div_b", "div_c", "div_d"]
+  status?: "Scheduled" | "Completed" | "Cancelled";
+  date?: string; // e.g. "2026-08-10"
+  cancellationReason?: string;
 }
 
 export interface Announcement {

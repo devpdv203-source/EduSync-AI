@@ -125,11 +125,11 @@ export const ReportErrorManager: React.FC = () => {
     });
   }, [reportIssues, statusFilter, searchQuery, role, studentObj, currentUser, teacherSemesterStudents]);
 
-  // Derive selected issue dynamically from filtered issues list
+  // Derive selected issue dynamically directly from report issues list to guarantee immediate, fresh updates
   const selectedIssue = useMemo(() => {
     if (!selectedIssueId) return null;
-    return filteredIssues.find(i => i.id === selectedIssueId) || null;
-  }, [filteredIssues, selectedIssueId]);
+    return reportIssues.find(i => i.id === selectedIssueId) || null;
+  }, [reportIssues, selectedIssueId]);
 
   // Statistics
   const stats = useMemo(() => {
@@ -224,10 +224,22 @@ export const ReportErrorManager: React.FC = () => {
     return getStudentSubjectAttendance(activeStudent.id, attSubjectId);
   }, [activeStudent, attSubjectId, getStudentSubjectAttendance, attendance]);
 
-  // Handle selecting an issue ticket
+  // Handle selecting an issue ticket - immediately reset and initialize ticket-specific state
   const handleSelectIssue = (issue: ReportIssue) => {
     setSelectedIssueId(issue.id);
+    setResponseText(issue.teacherResponse || issue.adminResponse || "");
+    setTargetStatus(issue.status === "Pending" ? "Under Review" : issue.status);
     setCorrectionSuccessMsg("");
+    setAttReason("");
+    setConfirmAttModalOpen(false);
+
+    const targetStudent = students.find(s => s.id === issue.studentId || s.uid === issue.studentId);
+    if (targetStudent) {
+      setEditStudentName(targetStudent.name);
+      setEditEnrollmentNo(targetStudent.enrollmentNo);
+      setEditDivisionId(targetStudent.divisionId);
+      setEditEmail(targetStudent.email || "");
+    }
   };
 
   // Automatically update initial fields when subject changes in attendance panel

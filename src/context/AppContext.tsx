@@ -67,12 +67,21 @@ interface AppContextType {
   selectedSemesterId: string;
   switchSemester: (semId: string) => void;
   selectedSemester: Semester;
+  filteredDivisions: Division[];
   filteredStudents: StudentRecord[];
   filteredSubjects: Subject[];
   filteredAttendance: AttendanceRecord[];
   filteredMarks: SubjectMarks[];
   filteredAssignments: Assignment[];
   filteredReportIssues: ReportIssue[];
+
+  // Active Navigation & Timetable Session Context
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+  activeAttendanceSession: TimetableSlot | null;
+  setActiveAttendanceSession: (session: TimetableSlot | null) => void;
+  navigateToTab: (tab: string, sessionContext?: TimetableSlot | null) => void;
+  updateTimetableSlotStatus: (slotId: string, status: "Scheduled" | "Completed" | "Cancelled") => void;
 
   notifications: NotificationItem[];
   unreadNotifCount: number;
@@ -121,6 +130,10 @@ interface AppContextType {
     absentStudentIds: string[];
     lateStudentIds?: string[];
     notes?: string;
+    sessionType?: "Lecture" | "Lab" | "Extra Class";
+    targetGroup?: string;
+    timetableSlotId?: string;
+    semesterId?: string;
   }) => { success: boolean; isUpdate: boolean; message: string };
   getStudentSubjectAttendance: (studentId: string, subjectId: string) => {
     subjectId: string;
@@ -276,6 +289,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       description: "My attendance for Period 2 on Aug 5 was recorded absent, but I was present.",
       submittedAt: "09 Aug 2026, 04:30 PM",
       status: "Pending"
+    },
+    {
+      id: "issue_103",
+      studentId: "stu_1",
+      studentName: "Alex Morgan",
+      studentEnrollmentNo: "EN2026-CS-042",
+      divisionId: "div_a",
+      reportId: "REP-STU_1",
+      reportVersion: 1,
+      category: "Incorrect Attendance",
+      description: "Attendance marked Absent for Advanced Algorithms on August 3rd Period 1. I attended the lecture and answered roll call.",
+      submittedAt: "08 Aug 2026, 11:30 AM",
+      status: "Resolved",
+      teacherResponse: "Verified with classroom attendance register sheet. Attendance corrected to Present.",
+      resolvedAt: "08 Aug 2026, 02:15 PM",
+      resolvedBy: "Prof. Sarah Jenkins"
+    },
+    {
+      id: "issue_104",
+      studentId: "stu_1",
+      studentName: "Alex Morgan",
+      studentEnrollmentNo: "EN2026-CS-042",
+      divisionId: "div_a",
+      reportId: "REP-STU_1",
+      reportVersion: 1,
+      category: "Incorrect Assignment/Activity Score",
+      description: "Assignment 1 (Graph Algorithms) submission was evaluated at 70%, but code tests passed 100% on the submission portal.",
+      submittedAt: "06 Aug 2026, 03:45 PM",
+      status: "Pending"
     }
   ];
 
@@ -304,6 +346,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Active Semester State & Calculations
   const [selectedSemesterId, setSelectedSemesterId] = useState<string>("sem_5");
+
+  // Navigation & Timetable Session Context
+  const [activeTab, setActiveTab] = useState<string>("dashboard");
+  const [activeAttendanceSession, setActiveAttendanceSession] = useState<TimetableSlot | null>(null);
+
+  const navigateToTab = (tab: string, sessionContext?: TimetableSlot | null) => {
+    if (sessionContext !== undefined) {
+      setActiveAttendanceSession(sessionContext);
+      if (sessionContext?.semesterId) {
+        setSelectedSemesterId(sessionContext.semesterId);
+      }
+    }
+    setActiveTab(tab);
+  };
+
+  const updateTimetableSlotStatus = (slotId: string, status: "Scheduled" | "Completed" | "Cancelled") => {
+    setTimetable(prev => prev.map(s => s.id === slotId ? { ...s, status } : s));
+  };
 
   const switchSemester = (semId: string) => {
     setSelectedSemesterId(semId);
@@ -721,6 +781,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     absentStudentIds: string[];
     lateStudentIds?: string[];
     notes?: string;
+    sessionType?: "Lecture" | "Lab" | "Extra Class";
+    targetGroup?: string;
+    timetableSlotId?: string;
+    semesterId?: string;
   }) => {
     simulateCloudSync();
 
@@ -758,6 +822,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           timeSlot: record.timeSlot || existing.timeSlot,
           recordedBy: record.recordedBy || currentUser.name,
           notes: record.notes !== undefined ? record.notes : existing.notes,
+          sessionType: record.sessionType || existing.sessionType || "Lecture",
+          targetGroup: record.targetGroup || existing.targetGroup,
+          timetableSlotId: record.timetableSlotId || existing.timetableSlotId,
+          semesterId: record.semesterId || existing.semesterId || selectedSemesterId,
           updatedAt: new Date().toISOString().split("T")[0],
           updatedBy: currentUser.name,
           auditTrail: [newAudit, ...(existing.auditTrail || [])]
@@ -780,11 +848,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           absentStudentIds: record.absentStudentIds,
           lateStudentIds: lateIds,
           notes: record.notes,
+          sessionType: record.sessionType || "Lecture",
+          targetGroup: record.targetGroup,
+          timetableSlotId: record.timetableSlotId,
+          semesterId: record.semesterId || selectedSemesterId,
           updatedAt: new Date().toISOString().split("T")[0]
         };
         return [newRecord, ...prev];
       }
     });
+
+    if (record.timetableSlotId) {
+      updateTimetableSlotStatus(record.timetableSlotId, "Completed");
+    }
 
     // Recalculate each student's overall attendance percentage based on all records
     setTimeout(() => {
@@ -1580,12 +1656,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         selectedSemesterId,
         switchSemester,
         selectedSemester,
+        filteredDivisions,
         filteredStudents,
         filteredSubjects,
         filteredAttendance,
         filteredMarks,
         filteredAssignments,
         filteredReportIssues,
+        activeTab,
+        setActiveTab,
+        activeAttendanceSession,
+        setActiveAttendanceSession,
+        navigateToTab,
+        updateTimetableSlotStatus,
         notifications,
         unreadNotifCount,
         markNotificationRead,
