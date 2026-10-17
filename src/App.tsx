@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
+import { Loader2 } from "lucide-react";
 import { AppProvider, useApp } from "./context/AppContext";
+import { LoginScreen } from "./components/auth/LoginScreen";
 import { Header } from "./components/layout/Header";
 import { Sidebar } from "./components/layout/Sidebar";
 import { NotificationDrawer } from "./components/layout/NotificationDrawer";
@@ -34,6 +36,7 @@ import { ProfileSettings } from "./components/shared/ProfileSettings";
 import { ReportsExporter } from "./components/shared/ReportsExporter";
 import { ReportErrorManager } from "./components/teacher/ReportErrorManager";
 import { ShieldAlert, ArrowLeft } from "lucide-react";
+import type { AttendanceSessionContext } from "./types";
 
 const MainAppContent: React.FC = () => {
   const { role, currentUser, canAccessTab } = useApp();
@@ -41,6 +44,7 @@ const MainAppContent: React.FC = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifDrawerOpen, setNotifDrawerOpen] = useState(false);
+  const [attendanceSessionContext, setAttendanceSessionContext] = useState<AttendanceSessionContext | null>(null);
 
   // AUTOMATIC AUTHORIZED ROUTE REDIRECT ON ROLE SWITCH
   useEffect(() => {
@@ -103,7 +107,7 @@ const MainAppContent: React.FC = () => {
         return role === "student" ? (
           <StudentAttendanceView />
         ) : (
-          <AttendanceManager />
+          <AttendanceManager sessionContext={attendanceSessionContext} onClearSessionContext={() => setAttendanceSessionContext(null)} />
         );
 
       case "marks":
@@ -128,7 +132,7 @@ const MainAppContent: React.FC = () => {
         );
 
       case "timetable":
-        return <TimetableManager />;
+        return <TimetableManager onTakeAttendance={(context) => { setAttendanceSessionContext(context); setActiveTab("attendance"); }} />;
 
       case "announcements":
         return <AnnouncementsView />;
@@ -196,10 +200,38 @@ const MainAppContent: React.FC = () => {
   );
 };
 
+/**
+ * AuthGate
+ *
+ * New in Phase 3. Decides whether to show a loading state, the login screen, or the
+ * existing application, based on real Firebase auth state exposed via useApp().
+ * MainAppContent itself is completely untouched — this only wraps it.
+ */
+const AuthGate: React.FC = () => {
+  const { authStatus } = useApp();
+
+  if (authStatus === "loading") {
+    return (
+      <div className="min-h-screen bg-slate-100/70 dark:bg-slate-950 flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-3">
+          <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+          <p className="text-xs text-slate-500 dark:text-slate-400">Checking your session…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (authStatus !== "authenticated") {
+    return <LoginScreen />;
+  }
+
+  return <MainAppContent />;
+};
+
 export default function App() {
   return (
     <AppProvider>
-      <MainAppContent />
+      <AuthGate />
     </AppProvider>
   );
 }

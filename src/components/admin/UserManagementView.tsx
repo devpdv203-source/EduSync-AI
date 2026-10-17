@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useApp } from "../../context/AppContext";
 import { UserProfile, UserRole } from "../../types";
 import {
@@ -25,7 +25,11 @@ export const UserManagementView: React.FC = () => {
     changeUserRole,
     toggleUserStatus,
     addUser,
-    auditLogs
+    auditLogs,
+    divisions,
+    semesters,
+    selectedSemesterId,
+    getDivisionsForSemester
   } = useApp();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -46,6 +50,39 @@ export const UserManagementView: React.FC = () => {
   const [newUserRole, setNewUserRole] = useState<UserRole>("student");
   const [newUserDepartment, setNewUserDepartment] = useState("Computer Science & Engineering");
   const [newUserEnrollment, setNewUserEnrollment] = useState("");
+  // PHASE 4: divisionId/semesterId are required by the backend for student accounts (no
+  // "div_a"-style default is allowed). Default the semester to whatever is currently
+  // selected in the app — a real, active context, not a fabricated fallback — and let the
+  // admin pick explicitly otherwise.
+  const [newUserSemesterId, setNewUserSemesterId] = useState(selectedSemesterId);
+  const [newUserDivisionId, setNewUserDivisionId] = useState("");
+  const [newUserDivisions, setNewUserDivisions] = useState<typeof divisions>([]);
+  const [newUserDivisionsLoading, setNewUserDivisionsLoading] = useState(false);
+
+  useEffect(() => {
+    if (newUserRole !== "student" || !newUserSemesterId) {
+      setNewUserDivisions([]);
+      return;
+    }
+
+    let cancelled = false;
+    setNewUserDivisionsLoading(true);
+    getDivisionsForSemester(newUserSemesterId)
+      .then(items => {
+        if (!cancelled) setNewUserDivisions(items);
+      })
+      .catch(err => {
+        console.error("Failed to load divisions for selected semester:", err);
+        if (!cancelled) setNewUserDivisions([]);
+      })
+      .finally(() => {
+        if (!cancelled) setNewUserDivisionsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [getDivisionsForSemester, newUserRole, newUserSemesterId]);
 
   const filteredUsers = users.filter(u => {
     const matchesSearch =
@@ -92,18 +129,32 @@ export const UserManagementView: React.FC = () => {
     e.preventDefault();
     if (!newUserName || !newUserEmail) return;
 
-    await addUser({
+    // PHASE 4: divisionId, semesterId, and a real enrollment number are required for
+    // student accounts — no auto-generated placeholder enrollment number and no default
+    // division are used here anymore (both were removed as unsafe fallback patterns).
+    if (newUserRole === "student" && (!newUserSemesterId || !newUserDivisionId || !newUserEnrollment)) {
+      return;
+    }
+
+    const created = await addUser({
       name: newUserName,
       email: newUserEmail,
       role: newUserRole,
       department: newUserDepartment,
-      enrollmentNo: newUserRole === "student" ? newUserEnrollment || `EN2026-REG-${Math.floor(100 + Math.random() * 900)}` : undefined
-    });
+      enrollmentNo: newUserRole === "student" ? newUserEnrollment : undefined,
+      ...(newUserRole === "student"
+        ? { divisionId: newUserDivisionId, semesterId: newUserSemesterId }
+        : {})
+    } as Partial<UserProfile> & { divisionId?: string; semesterId?: string });
+
+    if (!created) return;
 
     setAddUserModalOpen(false);
     setNewUserName("");
     setNewUserEmail("");
     setNewUserEnrollment("");
+    setNewUserDivisionId("");
+    setNewUserSemesterId(selectedSemesterId);
   };
 
   if (role !== "admin") {
@@ -582,14 +633,59 @@ export const UserManagementView: React.FC = () => {
 
               {newUserRole === "student" && (
                 <div>
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Enrollment Number</label>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Enrollment Number *</label>
                   <input
                     type="text"
                     value={newUserEnrollment}
                     onChange={e => setNewUserEnrollment(e.target.value)}
                     placeholder="e.g. EN2026-CS-088"
+                    required
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-xs text-slate-900 dark:text-slate-100"
                   />
+                </div>
+              )}
+
+              {newUserRole === "student" && (
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Semester *</label>
+                  <select
+                    value={newUserSemesterId}
+                    onChange={e => {
+                      setNewUserSemesterId(e.target.value);
+                      setNewUserDivisionId("");
+                    }}
+                    required
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-xs text-slate-900 dark:text-slate-100"
+                  >
+                    <option value="">Select semester</option>
+                    {semesters.map(s => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {newUserRole === "student" && (
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Division *</label>
+                  <select
+                    value={newUserDivisionId}
+                    onChange={e => setNewUserDivisionId(e.target.value)}
+                    required
+                    disabled={!newUserSemesterId}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-xs text-slate-900 dark:text-slate-100 disabled:opacity-50"
+                  >
+                    <option value="">Select division</option>
+                    {newUserDivisionsLoading ? (
+                      <option value="">Loading divisions...</option>
+                    ) : newUserDivisions.length > 0 ? (
+                      newUserDivisions.map(d => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))
+                    ) : (
+                      <option value="">No divisions available</option>
+                    )}
+                  </select>
                 </div>
               )}
 

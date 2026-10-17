@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { useApp } from "../../context/AppContext";
-import { User, ShieldCheck, Fingerprint, Lock, Moon, Sun, Save, CheckCircle } from "lucide-react";
+import { User, ShieldCheck, Fingerprint, Lock, Moon, Sun, Save, CheckCircle, LogOut } from "lucide-react";
 
 export const ProfileSettings: React.FC = () => {
-  const { currentUser, updateProfile, theme, toggleTheme, triggerBiometricVerification } = useApp();
+  const { currentUser, updateProfile, theme, toggleTheme, triggerBiometricVerification, logout } = useApp();
 
   const [name, setName] = useState(currentUser.name);
   const [email, setEmail] = useState(currentUser.email);
@@ -157,6 +157,35 @@ export const ProfileSettings: React.FC = () => {
             </div>
           </div>
         </form>
+
+        {/* Account Actions */}
+        <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
+            Account Actions
+          </h4>
+
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <LogOut className="w-5 h-5 text-rose-600 dark:text-rose-400" />
+              <div>
+                <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">
+                  Sign Out
+                </span>
+                <span className="text-[10px] text-slate-400">
+                  End your current session on this device.
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={logout}
+              className="px-4 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 text-xs font-bold hover:bg-rose-100 dark:hover:bg-rose-950/60 transition-all"
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -150,7 +150,7 @@ export const StudentPerformanceReport: React.FC<StudentPerformanceReportProps> =
 
   const reportMeta = getStudentReportMetadata(activeStudent?.id || "stu_1");
 
-  const handleSubmitErrorNotification = (e: React.FormEvent) => {
+ const handleSubmitErrorNotification = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitErrorMsg("");
 
@@ -163,7 +163,7 @@ export const StudentPerformanceReport: React.FC<StudentPerformanceReportProps> =
     setIsSubmittingError(true);
 
     try {
-      const res = submitReportIssue({
+      const res = await submitReportIssue({
         studentId: activeStudent?.id || "stu_1",
         studentName: activeStudent?.name || "Student",
         studentEnrollmentNo: activeStudent?.enrollmentNo || "N/A",

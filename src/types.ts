@@ -62,6 +62,7 @@ export interface StudentRecord {
   divisionId: string;
   divisionName: string;
   semesterId?: string;
+  department?: string;
   avatarUrl?: string;
   contact?: string;
   overallAttendance: number; // percentage
@@ -70,11 +71,20 @@ export interface StudentRecord {
   status: "Active" | "Inactive";
 }
 
+
 export interface AttendanceRecord {
   id: string;
   subjectId: string;
   subjectName: string;
   divisionId: string;
+  /** Optional scheduled-session context. */
+  semesterId?: string;
+  sessionId?: string;
+  teacherId?: string;
+  sessionType?: "lecture" | "lab" | "extra";
+  targetDivisionIds?: string[];
+  targetGroup?: string;
+  timetableSlotId?: string;
   date: string; // YYYY-MM-DD
   period: number; // e.g. 1, 2, 3, 4
   timeSlot?: string; // e.g., "09:00 AM - 10:00 AM"
@@ -83,10 +93,6 @@ export interface AttendanceRecord {
   absentStudentIds: string[];
   lateStudentIds?: string[];
   notes?: string;
-  sessionType?: "Lecture" | "Lab" | "Extra Class";
-  targetGroup?: string; // "All Divisions", "A + B", "C + D", "Division A", etc.
-  timetableSlotId?: string;
-  semesterId?: string;
   updatedAt?: string;
   updatedBy?: string;
   auditTrail?: {
@@ -96,16 +102,23 @@ export interface AttendanceRecord {
   }[];
 }
 
+
 export interface SubjectMarks {
+  id?: string;
   studentId: string;
   subjectId: string;
   subjectName: string;
+  semesterId?: string;
+  divisionId?: string;
   internal: number; // Max 20
   practical: number; // Max 30
   termEnd: number; // Max 50
   total: number; // Max 100
   grade: string; // A+, A, B, C, F
   updatedAt: string;
+  updatedBy?: string;
+  recordedBy?: string;
+  auditTrail?: { timestamp: string; modifiedBy: string; details: string }[];
 }
 
 export interface Assignment {
@@ -113,6 +126,8 @@ export interface Assignment {
   subjectId: string;
   subjectName: string;
   divisionId: string;
+  targetDivisionIds?: string[];
+  semesterId?: string;
   title: string;
   description: string;
   dueDate: string;
@@ -120,6 +135,8 @@ export interface Assignment {
   attachmentUrl?: string;
   attachmentName?: string;
   rubric?: string;
+  note?: string;
+  attachmentPath?: string;
   createdBy: string;
   createdAt: string;
 }
@@ -128,8 +145,11 @@ export interface Submission {
   id: string;
   assignmentId: string;
   assignmentTitle: string;
+  semesterId?: string;
+  divisionId?: string;
   studentId: string;
   studentName: string;
+  studentEnrollmentNo?: string;
   fileUrl: string;
   fileName: string;
   fileSize?: string;
@@ -153,25 +173,43 @@ export interface StudyMaterial {
   createdAt: string;
 }
 
+export interface AttendanceSessionContext {
+  sessionId?: string;
+  semesterId: string;
+  subjectId: string;
+  teacherId?: string;
+  divisionId: string;
+  targetDivisionIds: string[];
+  date: string;
+  timeSlot: string;
+  period: number;
+  sessionType: "lecture" | "lab" | "extra";
+  status?: "scheduled" | "cancelled";
+}
+
+
 export interface TimetableSlot {
   id: string;
+  /** Optional fields used when a schedule entry is a real attendance session. */
+  sessionId?: string;
+  semesterId?: string;
   divisionId: string;
+  targetDivisionIds?: string[];
+  targetGroup?: string;
+  sessionType?: "lecture" | "lab" | "extra" | "Lecture" | "Lab";
+  status?: "scheduled" | "cancelled" | "Scheduled" | "Completed" | "Cancelled";
+  date?: string;
+  period?: number;
   day: "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday";
-  startTime: string; // e.g. "09:00"
-  endTime: string; // e.g. "10:00"
+  startTime: string;
+  endTime: string;
   subjectId: string;
   subjectName: string;
   teacherName: string;
   roomNo: string;
-  semesterId?: string;
-  period?: number;
-  sessionType?: "Lecture" | "Lab";
-  targetGroup?: string; // e.g. "All Divisions (A+B+C+D)", "A + B", "C + D", "Division A"
-  targetDivisionIds?: string[]; // e.g. ["div_a", "div_b", "div_c", "div_d"]
-  status?: "Scheduled" | "Completed" | "Cancelled";
-  date?: string; // e.g. "2026-08-10"
   cancellationReason?: string;
 }
+
 
 export interface Announcement {
   id: string;
@@ -233,12 +271,16 @@ export interface MidExamMarks {
   studentId: string;
   subjectId: string;
   subjectName: string;
+  semesterId?: string;
+  divisionId?: string;
   score: number; // e.g. 24
   maxScore: number; // default 30
   examDate?: string; // e.g. "2026-07-15"
   academicPeriod?: string; // e.g. "Semester V Mid-Exam"
   updatedAt: string;
   updatedBy?: string;
+  recordedBy?: string;
+  auditTrail?: { timestamp: string; modifiedBy: string; details: string }[];
 }
 
 export interface PerformanceWeightConfig {
@@ -267,6 +309,7 @@ export type ReportIssueStatus =
 export interface ReportIssue {
   id: string;
   studentId: string;
+  semesterId: string;
   studentName: string;
   studentEnrollmentNo: string;
   divisionId: string;

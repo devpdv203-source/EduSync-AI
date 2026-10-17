@@ -6,3 +6,6 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Local Oracle JDK installation
+/oracleJdk-26/

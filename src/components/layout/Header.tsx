@@ -8,10 +8,10 @@ import {
   CloudOff,
   RefreshCw,
   Search,
-  UserCheck,
   Menu,
   ChevronDown,
-  WifiOff
+  WifiOff,
+  LogOut
 } from "lucide-react";
 
 interface HeaderProps {
@@ -27,7 +27,7 @@ export const Header: React.FC<HeaderProps> = ({
   const {
     currentUser,
     role,
-    switchRole,
+    logout,
     theme,
     toggleTheme,
     cloudSyncStatus,
@@ -137,6 +137,9 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800">
                 <p className="text-xs font-bold text-slate-900 dark:text-slate-100">{currentUser.name}</p>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">{currentUser.email}</p>
+                <p className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mt-0.5">
+                  {role}
+                </p>
               </div>
 
               {/* Theme Toggle option inside profile dropdown */}
@@ -152,54 +155,18 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
               </div>
 
-              <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                Switch Role Mode
+              <div className="mt-1 pt-1 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  onClick={() => {
+                    setRoleDropdownOpen(false);
+                    logout();
+                  }}
+                  className="w-full flex items-center space-x-2 px-3 py-2 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Sign Out</span>
+                </button>
               </div>
-
-              <button
-                onClick={() => {
-                  switchRole("teacher");
-                  setRoleDropdownOpen(false);
-                }}
-                className={`w-full flex items-center justify-between px-3 py-2 text-xs font-medium ${
-                  role === "teacher"
-                    ? "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40"
-                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-                }`}
-              >
-                <span>Prof. Sarah (Teacher)</span>
-                {role === "teacher" && <UserCheck className="w-3.5 h-3.5" />}
-              </button>
-
-              <button
-                onClick={() => {
-                  switchRole("student");
-                  setRoleDropdownOpen(false);
-                }}
-                className={`w-full flex items-center justify-between px-3 py-2 text-xs font-medium ${
-                  role === "student"
-                    ? "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40"
-                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-                }`}
-              >
-                <span>Alex Morgan (Student)</span>
-                {role === "student" && <UserCheck className="w-3.5 h-3.5" />}
-              </button>
-
-              <button
-                onClick={() => {
-                  switchRole("admin");
-                  setRoleDropdownOpen(false);
-                }}
-                className={`w-full flex items-center justify-between px-3 py-2 text-xs font-medium ${
-                  role === "admin"
-                    ? "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40"
-                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-                }`}
-              >
-                <span>Dr. Vance (Admin)</span>
-                {role === "admin" && <UserCheck className="w-3.5 h-3.5" />}
-              </button>
             </div>
           )}
         </div>

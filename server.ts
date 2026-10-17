@@ -3,13 +3,57 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
+import authRoutes from "./backend/routes/auth.routes";
+import usersRoutes from "./backend/routes/users.routes";
+import studentsRoutes from "./backend/routes/students.routes";
+import teachersRoutes from "./backend/routes/teachers.routes";
+import semestersRoutes from "./backend/routes/semesters.routes";
+import divisionsRoutes from "./backend/routes/divisions.routes";
+import subjectsRoutes from "./backend/routes/subjects.routes";
+import enrollmentsRoutes from "./backend/routes/enrollments.routes";
+import attendanceRoutes from "./backend/routes/attendance.routes";
+import marksRoutes from "./backend/routes/marks.routes";
+import midExamMarksRoutes from "./backend/routes/midExamMarks.routes";
+import assignmentsRoutes from "./backend/routes/assignments.routes";
+import { isFirebaseAdminConfigured, getFirebaseAdminError } from "./backend/config/firebase";
+import reportsRoutes from "./backend/routes/reports.routes";
 
 dotenv.config();
 
 const app = express();
 const PORT = 3000;
 
-app.use(express.json());
+app.use(express.json({ limit: "36mb" }));
+
+
+// Firebase Admin SDK check at boot — logs a clear warning instead of a cryptic failure
+// the first time a protected route is hit. Does not crash the server: Gemini routes and
+// the rest of the existing app must keep working even if Firebase isn't configured yet.
+if (isFirebaseAdminConfigured()) {
+  console.log("Firebase Admin SDK initialized (Auth + Firestore ready).");
+} else {
+  console.warn(`Firebase Admin SDK not configured: ${getFirebaseAdminError()}`);
+  console.warn("Routes under /api/auth will return 500 until Firebase env vars are set.");
+}
+
+// Firebase-authenticated session + RBAC verification routes (Phase 3).
+// Existing /api/rbac/* mock endpoints below are untouched and unaffected.
+app.use("/api/auth", authRoutes);
+
+// Phase 4: Firestore foundation for users/students/teachers/semesters/divisions/subjects/
+// enrollments. All real Firestore reads/writes, verified-token auth, no mockData.ts usage.
+app.use("/api/users", usersRoutes);
+app.use("/api/students", studentsRoutes);
+app.use("/api/teachers", teachersRoutes);
+app.use("/api/semesters", semestersRoutes);
+app.use("/api/divisions", divisionsRoutes);
+app.use("/api/subjects", subjectsRoutes);
+app.use("/api/enrollments", enrollmentsRoutes);
+app.use("/api/attendance", attendanceRoutes);
+app.use("/api/marks", marksRoutes);
+app.use("/api/mid-exam-marks", midExamMarksRoutes);
+app.use("/api/assignments", assignmentsRoutes);
+app.use("/api/reports", reportsRoutes);
 
 // Initialize Gemini API client lazily
 let aiClient: GoogleGenAI | null = null;

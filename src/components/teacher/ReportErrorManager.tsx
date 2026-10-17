@@ -268,23 +268,28 @@ export const ReportErrorManager: React.FC = () => {
   // ----------------------------------------------------
 
   // 1. Marks Correction
-  const handleApplyMarksCorrection = () => {
+  const handleApplyMarksCorrection = async () => {
     if (!selectedIssue || !activeStudent) return;
 
     const sub = subjects.find(s => s.id === correctSubjectId);
-    updateMidExamMark({
-      id: `mid_${activeStudent.id}_${correctSubjectId}`,
+    await updateMidExamMark({
+      id: `pending_${activeStudent.id}_${correctSubjectId}`,
       studentId: activeStudent.id,
       subjectId: correctSubjectId,
       subjectName: sub?.name || "Subject",
       score: Number(correctScore),
       maxScore: Number(correctMaxScore),
       examDate: new Date().toISOString().split("T")[0],
-      academicPeriod: "Semester V Mid-Exam Correction",
+      academicPeriod: "Mid-Exam Correction",
+      semesterId: selectedSemesterId,
+      divisionId: activeStudent.divisionId,
       updatedAt: new Date().toISOString().split("T")[0]
     });
 
-    const newMeta = regenerateStudentReport(activeStudent.id, `Mid Exam score corrected for ${sub?.name || "subject"}`);
+    const newMeta = await regenerateStudentReport(
+  activeStudent.id,
+  `Mid Exam score corrected for ${sub?.name || "subject"}`
+);
 
     setCorrectionSuccessMsg(
       `Mid Exam score updated & Report regenerated to Version ${newMeta.version}.0!`
@@ -296,10 +301,10 @@ export const ReportErrorManager: React.FC = () => {
   };
 
   // 2. Attendance Correction Confirmation & Trigger
-  const handleConfirmAttendanceCorrection = () => {
+  const handleConfirmAttendanceCorrection = async () => {
     if (!selectedIssue || !activeStudent) return;
 
-    const res = correctStudentAttendanceRecord({
+    const res = await correctStudentAttendanceRecord({
       studentId: activeStudent.id,
       subjectId: attSubjectId,
       date: selectedAttDate,
@@ -311,10 +316,10 @@ export const ReportErrorManager: React.FC = () => {
 
     if (res.success) {
       const sub = subjects.find(s => s.id === attSubjectId);
-      const newMeta = regenerateStudentReport(
-        activeStudent.id,
-        `Attendance corrected for ${sub?.name || "subject"} on ${selectedAttDate}`
-      );
+    const newMeta = await regenerateStudentReport(
+  activeStudent.id,
+  `Attendance corrected for ${sub?.name || "subject"} on ${selectedAttDate}`
+);
 
       setCorrectionSuccessMsg(
         `Attendance record updated to '${newAttStatus.toUpperCase()}' on ${selectedAttDate} & Report regenerated to Version ${newMeta.version}.0!`
@@ -328,7 +333,7 @@ export const ReportErrorManager: React.FC = () => {
   };
 
   // 3. Assignment Score Correction
-  const handleApplyAssignmentCorrection = () => {
+  const handleApplyAssignmentCorrection = async () => {
     if (!selectedIssue || !activeStudent) return;
 
     const asgn = assignments.find(a => a.id === selectedAssignmentId);
@@ -338,7 +343,10 @@ export const ReportErrorManager: React.FC = () => {
       evaluateSubmission(sub.id, Number(correctAssignmentScore), "Grade updated following error review ticket.");
     }
 
-    const newMeta = regenerateStudentReport(activeStudent.id, `Assignment score updated for ${asgn?.title || "assignment"}`);
+    const newMeta = await regenerateStudentReport(
+  activeStudent.id,
+  `Assignment score updated for ${asgn?.title || "assignment"}`
+);
 
     setCorrectionSuccessMsg(
       `Assignment grade updated & Report regenerated to Version ${newMeta.version}.0!`
@@ -350,7 +358,7 @@ export const ReportErrorManager: React.FC = () => {
   };
 
   // 4. Student Profile Info Correction
-  const handleApplyStudentInfoCorrection = () => {
+  const handleApplyStudentInfoCorrection = async () => {
     if (!selectedIssue || !activeStudent) return;
 
     updateStudentProfileInfo(activeStudent.id, {
@@ -360,7 +368,10 @@ export const ReportErrorManager: React.FC = () => {
       email: editEmail
     });
 
-    const newMeta = regenerateStudentReport(activeStudent.id, "Student profile directory updated");
+    const newMeta = await regenerateStudentReport(
+  activeStudent.id,
+  "Student profile directory updated"
+);
 
     setCorrectionSuccessMsg(
       `Student profile details updated & Report regenerated to Version ${newMeta.version}.0!`
@@ -372,10 +383,13 @@ export const ReportErrorManager: React.FC = () => {
   };
 
   // 5. Calculation / Report Regeneration
-  const handleRecalculateAndRegenerate = () => {
+ const handleRecalculateAndRegenerate = async () => {
     if (!selectedIssue || !activeStudent) return;
 
-    const newMeta = regenerateStudentReport(activeStudent.id, "Full metric recalculation & clean transcript generation");
+    const newMeta = await regenerateStudentReport(
+  activeStudent.id,
+  "Full metric recalculation & clean transcript generation"
+);
 
     setCorrectionSuccessMsg(
       `Performance metrics recalculated & Report regenerated to Version ${newMeta.version}.0!`
