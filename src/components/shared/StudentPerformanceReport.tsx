@@ -59,7 +59,6 @@ export const StudentPerformanceReport: React.FC<StudentPerformanceReportProps> =
     selectedSemesterId,
     selectedSemester,
     divisions,
-    triggerBiometricVerification,
     getStudentReportMetadata,
     submitReportIssue,
     regenerateStudentReport
@@ -481,11 +480,11 @@ export const StudentPerformanceReport: React.FC<StudentPerformanceReportProps> =
     }, 600);
   };
 
-  const handlePrintReport = () => {
-    triggerBiometricVerification("Print / Download Official Student Academic Performance Report", () => {
-      window.print();
-    });
-  };
+  
+const handlePrintReport = () => {
+  window.print();
+};
+
 
   const handleSaveWeights = (e: React.FormEvent) => {
     e.preventDefault();
